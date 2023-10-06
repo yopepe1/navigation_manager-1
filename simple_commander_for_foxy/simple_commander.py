@@ -9,8 +9,14 @@ import time
 class WaypointSender(Node):
     def __init__(self):
         super().__init__('waypoint_sender')
-        self._action_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
-        self.waypoints = self.load_waypoints_from_csv('output.csv')
+
+        self.declare_parameter('filename', 'waypoints.csv')
+        self.declare_parameter('action_server_name', 'navigate_to_pose')
+        waypoints_filename = self.get_parameter('filename').value
+        action_server_name = self.get_parameter('action_server_name').value
+
+        self._action_client = ActionClient(self, NavigateToPose, action_server_name)
+        self.waypoints = self.load_waypoints_from_csv(waypoints_filename)
         self.current_waypoint_index = 0
         self._last_feedback_time = self.get_clock().now()
 
