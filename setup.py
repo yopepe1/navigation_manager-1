@@ -2,7 +2,7 @@ from setuptools import setup
 import os
 from glob import glob
 
-package_name = 'simple_commander_for_foxy'
+package_name = 'navigation_manager'
 
 setup(
     name=package_name,
@@ -24,8 +24,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'simple_commander = simple_commander_for_foxy.simple_commander:main',
-            'waypoint_saver = simple_commander_for_foxy.waypoint_saver:main'
+            'navigation_manager = navigation_manager.navigation_manager:main',
+            'waypoint_saver = navigation_manager.waypoint_saver:main',
+            'param_test = navigation_manager.param_test:main'
         ],
     },
 )
