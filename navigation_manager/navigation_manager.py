@@ -20,7 +20,7 @@ class WaypointSender(Node):
         self.publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
 
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
-        self.waypoints = self.load_waypoints_from_csv(waypoints_filename)
+        self.waypoints_data = self.load_waypoints_from_csv(waypoints_filename)
         self.current_waypoint_index = 0
         self._last_feedback_time = self.get_clock().now()
         self.xy_goal_tol_ = 2.0
@@ -29,7 +29,7 @@ class WaypointSender(Node):
         self.skip_flag_ = 1
 
     def load_waypoints_from_csv(self, filename):
-        waypoints = []
+        waypoints_data = []
         with open(filename, mode='r') as file:
             reader = csv.reader(file)
             header = next(reader)
@@ -43,22 +43,27 @@ class WaypointSender(Node):
                 pose_stamped_msg.pose.orientation.y = float(row[5])
                 pose_stamped_msg.pose.orientation.z = float(row[6])
                 pose_stamped_msg.pose.orientation.w = float(row[7])
-                waypoints.append(pose_stamped_msg)
-                self.xy_goal_tol_ = float(row[8])
-                self.des_lin_vel_ = float(row[9])
-                self.stop_flag_ = bool(row[10])
-                self.skip_flag_ = bool(row[11])
+
+                waypoint_data = {
+                    "pose": pose_stamped_msg,
+                    "xy_goal_tol": float(row[8]),
+                    "des_lin_vel": float(row[9]),
+                    "stop_flag": bool(row[10]),
+                    "skip_flag": bool(row[11])
+                }
+
+                waypoints_data.append(waypoint_data)
 
 #                print(self.xy_goal_tol_)
 #                print(self.des_lin_vel_)
 #                print(self.stop_flag_)
 #                print(self.skip_flag_)
 
-        return waypoints
+        return waypoints_data
 
-    def send_goal(self, pose_stamped):
+    def send_goal(self, waypoint_data):
         goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = pose_stamped
+        goal_msg.pose = waypoint_data["pose"]
         
         while not self._action_client.wait_for_server(timeout_sec=1.0):
             self.get_logger().warn('Action server not available, waiting...')
@@ -68,6 +73,7 @@ class WaypointSender(Node):
         send_goal_future.add_done_callback(self.goal_response_callback)
         int_msg = Int32(data=self.current_waypoint_index)
         self.publisher_.publish(int_msg)
+        # ここにros2 paramを送信するものを書く
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
@@ -89,14 +95,14 @@ class WaypointSender(Node):
         self.get_logger().info('Goal completed with result: {0}'.format(result))
         self.current_waypoint_index += 1
         
-        if self.current_waypoint_index < len(self.waypoints):
-            next_waypoint = self.waypoints[self.current_waypoint_index]
-            next_waypoint.header.stamp = self.get_clock().now().to_msg()
-            self.send_goal(next_waypoint)
+        if self.current_waypoint_index < len(self.waypoints_data):
+            next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
+            next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
+            self.send_goal(next_waypoint_data)
 
     def run(self):
-        if self.waypoints:
-            self.send_goal(self.waypoints[self.current_waypoint_index])
+        if self.waypoints_data:
+            self.send_goal(self.waypoints_data[self.current_waypoint_index])
 
 def main(args=None):
     rclpy.init(args=args)
