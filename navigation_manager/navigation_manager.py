@@ -3,6 +3,7 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped
+from action_msgs.msg import GoalStatus
 import csv
 import time
 from std_msgs.msg import Int32
@@ -51,7 +52,7 @@ class WaypointSender(Node):
                     "xy_goal_tol": float(row[8]),
                     "des_lin_vel": float(row[9]),
                     "stop_flag": int(row[10]),
-                    "skip_flag": bool(row[11])
+                    "skip_flag": int(row[11])
                 }
 
                 #self.get_logger().info('stop_flag: %s' % waypoint_data["stop_flag"])
@@ -98,13 +99,20 @@ class WaypointSender(Node):
         
     def goal_result_callback(self, future):
         result = future.result().result
+        status = future.result().status
         self.get_logger().info('Goal completed with result: {0}'.format(result))
 
         self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
         current_stop_flag = self.next_waypoint_data["stop_flag"]
+        current_skip_flag = self.next_waypoint_data["skip_flag"]
         #self.get_logger().info('stop_flag: %s' % current_stop_flag)
-
-        self.current_waypoint_index += 1
+        self.get_logger().info('skip_flag: %s' % current_skip_flag)
+        self.get_logger().info('status: %s' % status)
+        
+        # SUCCEEDED または skip == 1のときに次のwaypointを目指す
+        # ABORTED かつ skip == 0 のときだけ同じwaypointを目指す
+        if current_skip_flag == 1 or status == GoalStatus.STATUS_SUCCEEDED:
+            self.current_waypoint_index += 1
         #self.get_logger().info('waypoint_index: %d' % self.current_waypoint_index)
         
         if self.current_waypoint_index < len(self.waypoints_data):
