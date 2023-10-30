@@ -5,6 +5,7 @@ from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped
 import csv
 import time
+from std_msgs.msg import Int32
 
 class WaypointSender(Node):
     def __init__(self):
@@ -14,11 +15,18 @@ class WaypointSender(Node):
         self.declare_parameter('action_server_name', 'navigate_to_pose')
         waypoints_filename = self.get_parameter('filename').value
         action_server_name = self.get_parameter('action_server_name').value
+#        print(waypoints_filename)
+
+        self.publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
 
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
         self.waypoints = self.load_waypoints_from_csv(waypoints_filename)
         self.current_waypoint_index = 0
         self._last_feedback_time = self.get_clock().now()
+        self.xy_goal_tol_ = 2.0
+        self.des_lin_vel_ = 0.4
+        self.stop_flag_ = 0
+        self.skip_flag_ = 1
 
     def load_waypoints_from_csv(self, filename):
         waypoints = []
@@ -36,6 +44,16 @@ class WaypointSender(Node):
                 pose_stamped_msg.pose.orientation.z = float(row[6])
                 pose_stamped_msg.pose.orientation.w = float(row[7])
                 waypoints.append(pose_stamped_msg)
+                self.xy_goal_tol_ = float(row[8])
+                self.des_lin_vel_ = float(row[9])
+                self.stop_flag_ = bool(row[10])
+                self.skip_flag_ = bool(row[11])
+
+#                print(self.xy_goal_tol_)
+#                print(self.des_lin_vel_)
+#                print(self.stop_flag_)
+#                print(self.skip_flag_)
+
         return waypoints
 
     def send_goal(self, pose_stamped):
@@ -48,6 +66,8 @@ class WaypointSender(Node):
         self.get_logger().info('Sending waypoint...')
         send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         send_goal_future.add_done_callback(self.goal_response_callback)
+        int_msg = Int32(data=self.current_waypoint_index)
+        self.publisher_.publish(int_msg)
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
@@ -82,12 +102,14 @@ def main(args=None):
     rclpy.init(args=args)
 
     waypoint_sender = WaypointSender()
-    waypoint_sender.run()
-    
-    rclpy.spin(waypoint_sender)
-
-    waypoint_sender.destroy_node()
-    rclpy.shutdown()
+    try:
+        waypoint_sender.run()
+        rclpy.spin(waypoint_sender)
+    except KeyboardInterrupt:
+        print("Received KeyboardInterrupt, shutting down...")
+    finally:
+        waypoint_sender.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
