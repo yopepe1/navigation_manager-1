@@ -50,9 +50,13 @@ class WaypointSender(Node):
                     "pose": pose_stamped_msg,
                     "xy_goal_tol": float(row[8]),
                     "des_lin_vel": float(row[9]),
-                    "stop_flag": bool(row[10]),
+                    "stop_flag": int(row[10]),
                     "skip_flag": bool(row[11])
                 }
+
+                #self.get_logger().info('stop_flag: %s' % waypoint_data["stop_flag"])
+                #self.get_logger().info('stop_flag: %d' % waypoint_data["stop_flag"])
+                #self.get_logger().info('skip_flag: %s' % waypoint_data["skip_flag"])
 
                 waypoints_data.append(waypoint_data)
 
@@ -95,13 +99,19 @@ class WaypointSender(Node):
     def goal_result_callback(self, future):
         result = future.result().result
         self.get_logger().info('Goal completed with result: {0}'.format(result))
+
+        self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
+        current_stop_flag = self.next_waypoint_data["stop_flag"]
+        #self.get_logger().info('stop_flag: %s' % current_stop_flag)
+
         self.current_waypoint_index += 1
+        #self.get_logger().info('waypoint_index: %d' % self.current_waypoint_index)
         
         if self.current_waypoint_index < len(self.waypoints_data):
             self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
 
-            if self.next_waypoint_data["stop_flag"]:
-                self.get_logger().info('Waiting for user input...')
+            if current_stop_flag == 1:
+                self.get_logger().info('Press n key to resume navigation.')
                 threading.Thread(target=self.wait_for_user_input).start()
             else:
                 self.next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
