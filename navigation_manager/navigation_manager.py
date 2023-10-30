@@ -6,6 +6,8 @@ from geometry_msgs.msg import PoseStamped
 import csv
 import time
 from std_msgs.msg import Int32
+import threading
+from pynput import keyboard
 
 class WaypointSender(Node):
     def __init__(self):
@@ -96,13 +98,34 @@ class WaypointSender(Node):
         self.current_waypoint_index += 1
         
         if self.current_waypoint_index < len(self.waypoints_data):
-            next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
-            next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
-            self.send_goal(next_waypoint_data)
+            self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
+
+            if self.next_waypoint_data["stop_flag"]:
+                self.get_logger().info('Waiting for user input...')
+                threading.Thread(target=self.wait_for_user_input).start()
+            else:
+                self.next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
+                self.send_goal(self.next_waypoint_data)
 
     def run(self):
         if self.waypoints_data:
             self.send_goal(self.waypoints_data[self.current_waypoint_index])
+
+    def wait_for_user_input(self):
+        self.key_pressed = False
+
+        def on_press(key):
+            if key == keyboard.KeyCode.from_char('n'):
+                self.key_pressed = True
+                return False  # Stop the listener
+
+        with keyboard.Listener(on_press=on_press) as listener:
+            listener.join()
+
+        print("'n' key detected!")
+        self.next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
+        #self.send_goal(self.next_waypoint_data["pose"])
+        self.send_goal(self.next_waypoint_data)
 
 def main(args=None):
     rclpy.init(args=args)
