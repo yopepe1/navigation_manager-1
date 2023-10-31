@@ -109,21 +109,27 @@ class WaypointSender(Node):
         self.get_logger().info('skip_flag: %s' % current_skip_flag)
         self.get_logger().info('status: %s' % status)
         
-        # SUCCEEDED または skip == 1のときに次のwaypointを目指す
-        # ABORTED かつ skip == 0 のときだけ同じwaypointを目指す
-        if current_skip_flag == 1 or status == GoalStatus.STATUS_SUCCEEDED:
+        # SUCCEEDED または ABORTEDかつskip == 1かつstop==0のときに次のwaypointを目指す
+        if status == GoalStatus.STATUS_SUCCEEDED or \
+          (status == GoalStatus.STATUS_ABORTED and current_skip_flag == 1 and current_stop_flag == 0):
             self.current_waypoint_index += 1
-        #self.get_logger().info('waypoint_index: %d' % self.current_waypoint_index)
+        else:
+            # 同じWaypointを目指し直す。インクリメントしないでセットするだけ。つまり何もしない。
+            pass
         
         if self.current_waypoint_index < len(self.waypoints_data):
             self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
 
-            if current_stop_flag == 1:
+            # stop==1かつSUCCEEDEDのときに停止する。ABORTEDのときには止まらず次のWaypointを目指す。
+            if current_stop_flag == 1 and status == GoalStatus.STATUS_SUCCEEDED:
                 self.get_logger().info('Press n key to resume navigation.')
                 threading.Thread(target=self.wait_for_user_input).start()
             else:
                 self.next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
                 self.send_goal(self.next_waypoint_data)
+        else:
+            self.get_logger().info('Arrived at the last waypoint. Navigation complete.')
+
 
     def run(self):
         if self.waypoints_data:
