@@ -5,6 +5,7 @@ import csv
 import os
 from datetime import datetime
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseStamped
 import threading
 
 class PoseRecorder(Node):
@@ -12,22 +13,20 @@ class PoseRecorder(Node):
         super().__init__('pose_recorder')
         self.poses = []
         self.current_pose = None
-        self.pose_id = 1
+        self.pose_id = 0
         self.xy_goal_tol_ = 2.0
         self.des_lin_vel_ = 0.4
         self.stop_flag_ = 0
         self.skip_flag_ = 1
 
         self.create_subscription(Odometry, '/odom', self.pose_callback, 10)
+        self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint', 10) 
         print('Press "s" to save the current pose, "q" to quit and save to csv.')
 
         self.keyboard_thread = threading.Thread(target=self.keyboard_listener)
         self.keyboard_thread.start()
-        #with keyboard.Listener(on_press=self.on_key_press) as listener:
-        #    listener.join()
 
     def pose_callback(self, msg):
-        #print('subscribed!')
         self.current_pose = msg.pose.pose
 
     def keyboard_listener(self):
@@ -53,8 +52,16 @@ class PoseRecorder(Node):
                         str(self.skip_flag_)
                     ]
                     self.poses.append(pose_data)
-                    print('Pose saved!')
+                    print('   saved! ID: ' + str(self.pose_id))
                     self.pose_id += 1
+
+                    # Publish the saved pose as PoseStamped
+                    pose_stamped = PoseStamped()
+                    pose_stamped.header.stamp = self.get_clock().now().to_msg()
+                    pose_stamped.header.frame_id = "map"  # frame_idに注意
+                    pose_stamped.pose = self.current_pose
+                    self.pose_publisher.publish(pose_stamped)
+
                 else:
                     print('Warning: No pose received yet.')
             elif key.char == 'q':
@@ -76,7 +83,7 @@ class PoseRecorder(Node):
                              'xy_goal_tol', 'des_lin_vel', 'stop_flag', 'skip_flag'])
             writer.writerows(self.poses)
 
-        print(f'Data saved to {path}!')
+        print(f'   quited. Data saved to {path}!')
 
 def main(args=None):
     rclpy.init(args=args)
