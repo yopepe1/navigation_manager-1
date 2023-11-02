@@ -20,7 +20,7 @@ class PoseRecorder(Node):
         self.skip_flag_ = 1
 
         self.create_subscription(Odometry, '/odom', self.pose_callback, 10)
-        self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint', 10) 
+        self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10) 
         print('Press "s" to save the current pose, "q" to quit and save to csv.')
 
         self.keyboard_thread = threading.Thread(target=self.keyboard_listener)

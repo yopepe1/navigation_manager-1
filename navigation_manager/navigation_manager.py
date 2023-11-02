@@ -21,16 +21,13 @@ class WaypointSender(Node):
 #        print(waypoints_filename)
 
         self.publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
+        self.pose_publisher_ = self.create_publisher(PoseStamped, 'navigation_manager/waypoint_pose', 10)
 
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
         self.waypoints_data = self.load_waypoints_from_csv(waypoints_filename)
         self.current_waypoint_index = 0
         self._last_feedback_time = self.get_clock().now()
-        self.xy_goal_tol_ = 2.0
-        self.des_lin_vel_ = 0.4
-        self.stop_flag_ = 0
-        self.skip_flag_ = 1
-
+        
     def load_waypoints_from_csv(self, filename):
         waypoints_data = []
         with open(filename, mode='r') as file:
@@ -55,16 +52,7 @@ class WaypointSender(Node):
                     "skip_flag": int(row[11])
                 }
 
-                #self.get_logger().info('stop_flag: %s' % waypoint_data["stop_flag"])
-                #self.get_logger().info('stop_flag: %d' % waypoint_data["stop_flag"])
-                #self.get_logger().info('skip_flag: %s' % waypoint_data["skip_flag"])
-
                 waypoints_data.append(waypoint_data)
-
-#                print(self.xy_goal_tol_)
-#                print(self.des_lin_vel_)
-#                print(self.stop_flag_)
-#                print(self.skip_flag_)
 
         return waypoints_data
 
@@ -80,7 +68,7 @@ class WaypointSender(Node):
         send_goal_future.add_done_callback(self.goal_response_callback)
         int_msg = Int32(data=self.current_waypoint_index)
         self.publisher_.publish(int_msg)
-        # ここにros2 paramを送信するものを書く
+        self.pose_publisher_.publish(waypoint_data["pose"]) 
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
@@ -92,8 +80,6 @@ class WaypointSender(Node):
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().warn('Goal rejected by server')
-            # Resend the goal or handle accordingly
-            # ...
 
         goal_handle.get_result_async().add_done_callback(self.goal_result_callback)
         
@@ -105,7 +91,6 @@ class WaypointSender(Node):
         self.next_waypoint_data = self.waypoints_data[self.current_waypoint_index]
         current_stop_flag = self.next_waypoint_data["stop_flag"]
         current_skip_flag = self.next_waypoint_data["skip_flag"]
-        #self.get_logger().info('stop_flag: %s' % current_stop_flag)
         self.get_logger().info('skip_flag: %s' % current_skip_flag)
         self.get_logger().info('status: %s' % status)
         
