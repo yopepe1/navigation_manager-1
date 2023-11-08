@@ -2,7 +2,10 @@
 navigation2に対して、waypointを投げたり、特定の位置で停止したり、速度を指示したりします。
 
 ## ビルド
-以下のパッケージをインストールします。
+依存パッケージとして以下のモジュールをインストールします。
+pip install pynput
+
+動作確認のため以下のパッケージをインストールします。
 - turtlebot3(https://github.com/ROBOTIS-GIT/turtlebot3)
 - turtlebot3_simulation(https://github.com/ROBOTIS-GIT/turtlebot3_simulations)
 
