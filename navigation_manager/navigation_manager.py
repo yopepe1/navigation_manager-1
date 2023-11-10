@@ -9,6 +9,9 @@ import time
 from std_msgs.msg import Int32
 import threading
 from pynput import keyboard
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseWithCovarianceStamped
+
 
 class WaypointSender(Node):
     def __init__(self):
@@ -20,13 +23,24 @@ class WaypointSender(Node):
         action_server_name = self.get_parameter('action_server_name').value
 #        print(waypoints_filename)
 
-        self.publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
+        self.id_publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
         self.pose_publisher_ = self.create_publisher(PoseStamped, 'navigation_manager/waypoint_pose', 10)
 
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
         self.waypoints_data = self.load_waypoints_from_csv(waypoints_filename)
         self.current_waypoint_index = 0
         self._last_feedback_time = self.get_clock().now()
+        
+        # /odomからEKFのposeを取得
+        self.odom_subscriber = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
+        # odomのポーズを保持する変数を初期化
+        self.odom_pose = None
+        # AMCLに/initialposeをpublish
+        self.initial_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
+        # gpsとmapのposeを提供してくれるノードに対して指示
+        self.gps_pose_enable_publisher_ = self.create_publisher(Int32, '/navigation_manager/gps_pose_enable', 10)
+        self.map_pose_enable_publisher_ = self.create_publisher(Int32, '/navigation_manager/map_pose_enable', 10)
+        
         
     def load_waypoints_from_csv(self, filename):
         waypoints_data = []
@@ -49,7 +63,10 @@ class WaypointSender(Node):
                     "xy_goal_tol": float(row[8]),
                     "des_lin_vel": float(row[9]),
                     "stop_flag": int(row[10]),
-                    "skip_flag": int(row[11])
+                    "skip_flag": int(row[11]),
+                    "gps_pose_enable": int(row[12]),
+                    "map_pose_enable": int(row[13]),
+                    "init_pose_pub": int(row[14])
                 }
 
                 waypoints_data.append(waypoint_data)
@@ -67,8 +84,24 @@ class WaypointSender(Node):
         send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         send_goal_future.add_done_callback(self.goal_response_callback)
         int_msg = Int32(data=self.current_waypoint_index)
-        self.publisher_.publish(int_msg)
-        self.pose_publisher_.publish(waypoint_data["pose"]) 
+        # idを送信
+        self.id_publisher_.publish(int_msg)
+        # navigation2にposeを送信
+        self.pose_publisher_.publish(waypoint_data["pose"])
+        # gps_pose_providerにフラグを送信
+        gps_pose_enable_msg = Int32(data=waypoint_data["gps_pose_enable"])
+        self.gps_pose_enable_publisher_.publish(gps_pose_enable_msg)
+        # map_pose_providerにフラグを送信
+        map_pose_enable_msg = Int32(data=waypoint_data["map_pose_enable"])
+        self.map_pose_enable_publisher_.publish(map_pose_enable_msg)
+        # ここでinit_pose_pubをチェックして、/initialposeにposeを送信
+        if waypoint_data["init_pose_pub"] == 1 and self.odom_pose is not None:
+            initial_pose_msg = PoseWithCovarianceStamped()
+            initial_pose_msg.header.stamp = self.get_clock().now().to_msg()
+            initial_pose_msg.header.frame_id = 'map'  # 'map'フレームは適宜調整してください
+            initial_pose_msg.pose.pose = self.odom_pose.pose.pose  # OdometryのPoseWithCovarianceからPoseにコピー
+            initial_pose_msg.pose.covariance = self.odom_pose.pose.covariance  # 共分散情報もコピー
+            self.initial_pose_publisher.publish(initial_pose_msg)
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
@@ -115,7 +148,10 @@ class WaypointSender(Node):
         else:
             self.get_logger().info('Arrived at the last waypoint. Navigation complete.')
 
-
+    def odom_callback(self, msg):
+        self.odom_pose = msg
+        #self.odom_pose = msg.pose
+        
     def run(self):
         if self.waypoints_data:
             self.send_goal(self.waypoints_data[self.current_waypoint_index])
