@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'navigation_manager = navigation_manager.navigation_manager:main',
             'waypoint_saver = navigation_manager.waypoint_saver:main',
+            'waypoint_saver_for_map = navigation_manager.waypoint_saver_for_map:main',
             'param_test = navigation_manager.param_test:main'
         ],
     },
