@@ -18,6 +18,9 @@ class PoseRecorder(Node):
         self.des_lin_vel_ = 0.4
         self.stop_flag_ = 0
         self.skip_flag_ = 1
+        self.gps_pose_enable_ = 1
+        self.map_pose_enable_ = 0
+        self.init_pose_pub_ = 0
 
         self.create_subscription(Odometry, '/odom', self.pose_callback, 10)
         self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10) 
@@ -49,7 +52,10 @@ class PoseRecorder(Node):
                         str(self.xy_goal_tol_),
                         str(self.des_lin_vel_),
                         str(self.stop_flag_),
-                        str(self.skip_flag_)
+                        str(self.skip_flag_),
+                        str(self.gps_pose_enable_),
+                        str(self.map_pose_enable_),
+                        str(self.init_pose_pub_)
                     ]
                     self.poses.append(pose_data)
                     print('   saved! ID: ' + str(self.pose_id))
