@@ -6,8 +6,8 @@ import time
 class GpsOnAmclOff(Node):
     def __init__(self):
         super().__init__('gps_on_amcl_off')
-        self.gps_pose_enable_publisher_ = self.create_publisher(Int32, '/gps_pose_enable', 10)
-        self.amcl_pose_enable_publisher_ = self.create_publisher(Int32, '/amcl_pose_enable', 10)
+        self.gps_pose_enable_publisher_ = self.create_publisher(Int32, '/navigation_manager/gps_pose_enable', 10)
+        self.amcl_pose_enable_publisher_ = self.create_publisher(Int32, '/navigation_manager/amcl_pose_enable', 10)
 
     def publish_messages(self):
         for _ in range(3):
