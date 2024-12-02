@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/sugimoto/ros2_ws/install/nav2_straightline_planner/include/**",
+        "/home/sugimoto/ros2_ws/install/cybergear_m5_driver/include/**",
+        "/home/sugimoto/livox_ws/install/pointcloud_to_laserscan/include/**",
+        "/home/sugimoto/livox_ws/install/fast_lio/include/**",
+        "/home/sugimoto/livox_ws/install/livox_ros_driver2/include/**",
+        "/home/sugimoto/turtlebot3_ws/install/turtlebot3_msgs/include/**",
+        "/home/sugimoto/turtlebot3_ws/install/realsense2_camera/include/**",
+        "/home/sugimoto/turtlebot3_ws/install/realsense2_camera_msgs/include/**",
+        "/home/sugimoto/turtlebot3_ws/install/dynamixel_sdk_custom_interfaces/include/**",
+        "/home/sugimoto/turtlebot3_ws/install/dynamixel_sdk/include/**",
+        "/opt/ros/humble/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

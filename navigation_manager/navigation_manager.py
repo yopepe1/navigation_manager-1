@@ -32,7 +32,7 @@ class WaypointSender(Node):
         self._last_feedback_time = self.get_clock().now()
         
         # /odomからEKFのposeを取得
-        self.odom_subscriber = self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
+        self.odom_subscriber = self.create_subscription(Odometry, '/demo/odom', self.odom_callback, 10)
         # odomのポーズを保持する変数を初期化
         self.odom_pose = None
         # AMCLに/initialposeをpublish
