@@ -8,17 +8,11 @@ import sys
 class WaypointViewer(Node):
     def __init__(self, csv_path):
         super().__init__('waypoint_viewer')
-        self.markers = MarkerArray()
-        self.text_markers = MarkerArray()
-        self.line_markers = MarkerArray()
-
+        
         # MarkerArrayパブリッシャーを作成
         self.marker_publisher = self.create_publisher(
             MarkerArray, '/waypoint_markers', 10)
-        self.text_marker_pub = self.create_publisher(MarkerArray, 'waypoint/text_markers', 10)
-        self.line_marker_pub = self.create_publisher(MarkerArray, 'waypoint/line_markers', 10)
-        self.waypoint_id_sub = self.create_subscription(Int32, 'next_waypoint_id', self.waypoint_id_callback, 10)
-
+        
         # CSVファイルからウェイポイントを読み込む
         self.waypoints = self.load_waypoints_from_csv(csv_path)
         
@@ -71,7 +65,7 @@ class WaypointViewer(Node):
             arrow_marker.color.g = 0.0
             arrow_marker.color.b = 1.0
             arrow_marker.color.a = 1.0
-            self.line_markers.markers.append(arrow_marker)
+            marker_array.markers.append(arrow_marker)
             
             # ウェイポイントIDを表示するテキストマーカー
             text_marker = Marker()
@@ -85,17 +79,14 @@ class WaypointViewer(Node):
             text_marker.pose.position.z += 0.5  # テキストを少し上に表示
             text_marker.text = str(waypoint['id'])  # CSVファイルの元のID
             text_marker.scale.z = 0.3  # テキストのサイズ
-            text_marker.color.r = 0.0
-            text_marker.color.g = 0.0
-            text_marker.color.b = 0.0
+            text_marker.color.r = 1.0
+            text_marker.color.g = 1.0
+            text_marker.color.b = 1.0
             text_marker.color.a = 1.0
-            self.text_markers.markers.append(text_marker)
-
-    def timer_callback(self):
-        self.marker_pub.publish(self.markers)
-        self.text_marker_pub.publish(self.text_markers)
-        self.line_marker_pub.publish(self.line_markers)
-
+            marker_array.markers.append(text_marker)
+        
+        # マーカー配列をパブリッシュ
+        self.marker_publisher.publish(marker_array)
 
 def main(args=None):
     rclpy.init(args=args)
