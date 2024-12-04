@@ -21,7 +21,7 @@ class WaypointSender(Node):
         self.declare_parameter('action_server_name', 'navigate_to_pose')
         waypoints_filename = self.get_parameter('filename').value
         action_server_name = self.get_parameter('action_server_name').value
-#        print(waypoints_filename)
+
 
         self.id_publisher_ = self.create_publisher(Int32, '/navigation_manager/next_waypointID', 10)
         self.pose_publisher_ = self.create_publisher(PoseStamped, 'navigation_manager/waypoint_pose', 10)

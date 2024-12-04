@@ -29,7 +29,8 @@ setup(
             'waypoint_saver_for_map = navigation_manager.waypoint_saver_for_map:main',
             'param_test = navigation_manager.param_test:main',
             'gps_on = navigation_manager.gps_on_amcl_off:main',
-            'amcl_on = navigation_manager.amcl_on_gps_off:main'
+            'amcl_on = navigation_manager.amcl_on_gps_off:main',
+            'waypoint_viewer = navigation_manager.waypoint_viewer:main',
         ],
     },
 )
